@@ -1,0 +1,47 @@
+{
+  "styles": [
+    {
+      "id": "signature",
+      "name": "Signature",
+      "pricePerSquareMeter": 150.00,
+      "description": "The quintessential Unikron experience. Balanced and elegant."
+    },
+    {
+      "id": "luxe",
+      "name": "Luxe",
+      "pricePerSquareMeter": 250.00,
+      "description": "Premium materials and high-end finishes for the most discerning clients."
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal",
+      "pricePerSquareMeter": 100.00,
+      "description": "Sleek, clean lines and functional beauty. Less is more."
+    },
+    {
+      "id": "custom",
+      "name": "Custom",
+      "pricePerSquareMeter": 200.00,
+      "description": "Tailored to your specific vision and prompts."
+    }
+  ],
+  "addons": [
+    {
+      "id": "smart_home",
+      "name": "Smart Living Integration",
+      "price": 2500.00,
+      "description": "IoT and automated lighting systems."
+    },
+    {
+      "id": "biophilic",
+      "name": "Biophilic Accents",
+      "price": 1800.00,
+      "description": "Integrated indoor greenery and living walls."
+    }
+  ],
+  "complexityMultipliers": {
+    "standard": 1.0,
+    "high_complex": 1.25,
+    "ultra_luxury": 1.5
+  }
+}
