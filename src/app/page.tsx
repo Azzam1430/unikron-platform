@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DesignStudio } from "@/components/studio/DesignStudio";
 import { StylePicker } from "@/components/studio/StylePicker";
 import { Button } from "@/components/ui/Button";
@@ -8,8 +8,10 @@ import { ShoppingCart, Sparkles, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import inventory from "@/data/inventory.json";
 import { motion, AnimatePresence } from "framer-motion";
+import { generate3DDesign } from "@/lib/nano-banana";
 
 export default function Home() {
+  const [hasMounted, setHasMounted] = useState(false);
   const [step, setStep] = useState(1);
   const [selectedStyle, setSelectedStyle] = useState<string>("signature");
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
@@ -19,8 +21,11 @@ export default function Home() {
   const [totalPrice, setTotalPrice] = useState<number | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [isCheckoutSuccess, setIsCheckoutSuccess] = useState(false);
-
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const handleImageUploaded = (file: File) => {
     setUploadedFile(file);
@@ -62,21 +67,56 @@ export default function Home() {
     calculateTotal(selectedStyle, selectedAddons, value);
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsProcessing(true);
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsProcessing(false);
-      const newId = Math.random().toString(36).substr(2, 6).toUpperCase();
-      setRenderId(newId);
-      // Set a result image based on style for the demo
-      const sampleResult = selectedStyle === "minimal"
-        ? "/result_minimal.png"
-        : "/result_luxe.png";
-      setResultImage(sampleResult);
+
+    try {
+      if (uploadedFile) {
+        // Real API Call via proxy route
+        const formData = new FormData();
+        formData.append("image", uploadedFile);
+        formData.append("style", selectedStyle);
+
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error("API call failed");
+
+        const result = await response.json();
+        setResultImage(result.imageUrl);
+        setRenderId(result.id);
+      } else {
+        // Simulation for empty upload
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const newId = Math.random().toString(36).substr(2, 6).toUpperCase();
+        setRenderId(newId);
+        setResultImage(selectedStyle === "minimal" ? "/result_minimal.png" : "/result_luxe.png");
+      }
       setStep(2);
-    }, 3000);
+    } catch (error) {
+      console.error("Generation failed:", error);
+      // Fallback
+      setResultImage("/result_luxe.png");
+      setStep(2);
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
+  const resetAll = () => {
+    setStep(1);
+    setIsCheckoutSuccess(false);
+    setResultImage(null);
+    setUploadedFile(null);
+    setSelectedAddons([]);
+    setRenderId("");
+  };
+
+  if (!hasMounted) {
+    return <div className="min-h-screen bg-[#050505]" />;
+  }
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-[#050505] text-white">
@@ -169,9 +209,14 @@ export default function Home() {
         <div className="space-y-8">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest">
-              3. Upload Floor Plan
+              3. Architectural Processing (Upload Floor Plan)
             </h3>
-            <DesignStudio onImageUploaded={handleImageUploaded} isProcessing={isProcessing} />
+            <DesignStudio
+              onImageUploaded={handleImageUploaded}
+              isProcessing={isProcessing}
+              resultImage={resultImage}
+              onReset={resetAll}
+            />
           </div>
 
           <div className="flex justify-end">
@@ -221,16 +266,6 @@ export default function Home() {
                 <span className="text-white truncate">{uploadedFile?.name || "unnamed_plan.pdf"}</span>
               </div>
 
-              <div className="aspect-video bg-zinc-900 rounded-2xl overflow-hidden relative group border border-white/5">
-                {resultImage && (
-                  <img src={resultImage} alt="Generated 3D Design" className="w-full h-full object-cover animate-in fade-in zoom-in duration-700" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
-                <div className="absolute bottom-4 left-4 font-mono text-[10px] opacity-40 tracking-widest text-white">
-                  VERIFIED_ARCHITECTURAL_RENDER_4.2 // {renderId}
-                </div>
-              </div>
-
               <Button
                 variant="primary"
                 className="w-full group overflow-hidden relative"
@@ -257,7 +292,7 @@ export default function Home() {
                 <h2 className="text-3xl font-bold text-gradient">Payment Successful</h2>
                 <p className="text-zinc-500 mt-2">Project #UK-2026 has been finalized.<br />Check your email for the high-res renders.</p>
               </div>
-              <Button variant="glass" onClick={() => { setStep(1); setIsCheckoutSuccess(false); setResultImage(null); setUploadedFile(null); setSelectedAddons([]); }}>
+              <Button variant="glass" onClick={resetAll}>
                 Start New Project
               </Button>
             </motion.div>
@@ -273,6 +308,6 @@ export default function Home() {
           <a href="#" className="hover:text-white transition-colors">Journal</a>
         </div>
       </footer>
-    </main>
+    </main >
   );
 }

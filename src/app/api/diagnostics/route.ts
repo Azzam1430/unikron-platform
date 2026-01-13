@@ -14,7 +14,7 @@ export async function GET() {
         const key = process.env.GEMINI_API_KEY;
         if (!key) throw new Error("Key missing");
         const genAI = new GoogleGenerativeAI(key);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-thinking-exp" });
         await model.generateContent("test");
         diagnostics.gemini = { status: "ok", message: "API connection successful" };
     } catch (e: any) {

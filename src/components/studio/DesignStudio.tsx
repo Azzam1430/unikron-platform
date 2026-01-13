@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 interface DesignStudioProps {
     onImageUploaded: (file: File) => void;
     isProcessing?: boolean;
+    resultImage?: string | null;
+    onReset?: () => void;
 }
 
-export function DesignStudio({ onImageUploaded, isProcessing }: DesignStudioProps) {
+export function DesignStudio({ onImageUploaded, isProcessing, resultImage, onReset }: DesignStudioProps) {
     const [preview, setPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -34,7 +36,7 @@ export function DesignStudio({ onImageUploaded, isProcessing }: DesignStudioProp
 
     return (
         <div className="w-full">
-            {!preview ? (
+            {!preview && !resultImage ? (
                 <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
@@ -71,24 +73,41 @@ export function DesignStudio({ onImageUploaded, isProcessing }: DesignStudioProp
             ) : (
                 <div className="relative rounded-3xl overflow-hidden glass aspect-video">
                     <img
-                        src={preview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+                        src={(resultImage || preview) ?? undefined}
+                        alt="Design View"
+                        className={cn(
+                            "w-full h-full object-cover transition-opacity duration-700",
+                            isProcessing ? "opacity-40" : "opacity-100"
+                        )}
                     />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setPreview(null)}
-                            className="gap-2"
-                        >
-                            <X className="w-4 h-4" /> Replace
-                        </Button>
-                    </div>
+                    {!isProcessing && !resultImage && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => { setPreview(null); onReset?.(); }}
+                                className="gap-2"
+                            >
+                                <X className="w-4 h-4" /> Replace
+                            </Button>
+                        </div>
+                    )}
+                    {resultImage && (
+                        <div className="absolute top-4 right-4 z-20">
+                            <Button
+                                variant="glass"
+                                size="sm"
+                                className="bg-white/10"
+                                onClick={() => { setPreview(null); onReset?.(); }}
+                            >
+                                <X className="w-4 h-4 mr-2" /> New Design
+                            </Button>
+                        </div>
+                    )}
                     {isProcessing && (
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
                             <Loader2 className="w-10 h-10 text-white animate-spin" />
-                            <p className="text-white font-medium">Generating 3D Design...</p>
+                            <p className="text-white font-medium">Architectural Engine Processing...</p>
                         </div>
                     )}
                 </div>
