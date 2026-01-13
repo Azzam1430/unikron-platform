@@ -4,10 +4,19 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Zap, TrendingUp, PackagePlus } from "lucide-react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function AdminPage() {
     const [summary, setSummary] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [diagnostics, setDiagnostics] = useState<any>(null);
+
+    useEffect(() => {
+        fetch("/api/diagnostics")
+            .then(res => res.json())
+            .then(data => setDiagnostics(data))
+            .catch(err => console.error("Diagnostics failed:", err));
+    }, []);
 
     // Mock logs
     const mockLogs = [
@@ -71,6 +80,32 @@ export default function AdminPage() {
                             <div className="text-sm text-zinc-500">Conversion</div>
                             <div className="text-xl font-bold">12.4%</div>
                         </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {diagnostics ? (
+                            Object.entries(diagnostics).map(([key, data]: [string, any]) => (
+                                <div key={key} className="glass p-6 rounded-3xl border border-white/5">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">{key.replace('_', ' ')}</div>
+                                        <div className={cn(
+                                            "w-2 h-2 rounded-full",
+                                            data.status === 'ok' ? "bg-green-500 blur-[2px]" : "bg-red-500 blur-[2px]"
+                                        )} />
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                        {data.status === 'ok' ? "Connected" : "Error"}
+                                    </div>
+                                    <div className="text-[10px] text-zinc-500 mt-1 truncate">
+                                        {data.message}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-3 glass p-6 rounded-3xl animate-pulse text-center text-zinc-600 text-xs">
+                                RUNNING_SYSTEM_DIAGNOSTICS...
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-4">
