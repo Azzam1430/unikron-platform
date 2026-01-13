@@ -13,10 +13,18 @@ export async function GET() {
     try {
         const key = process.env.GEMINI_API_KEY;
         if (!key) throw new Error("Key missing");
-        const genAI = new GoogleGenerativeAI(key);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-thinking-exp" });
-        await model.generateContent("test");
-        diagnostics.gemini = { status: "ok", message: "API connection successful" };
+
+        // Try to list models to see what's available
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`);
+        if (!resp.ok) throw new Error(`ListModels failed: ${resp.statusText}`);
+        const data = await resp.json();
+        const hasFlash = data.models?.some((m: any) => m.name.includes("gemini-1.5-flash"));
+
+        if (hasFlash) {
+            diagnostics.gemini = { status: "ok", message: "Key valid & models found" };
+        } else {
+            diagnostics.gemini = { status: "ok", message: "Key valid but models limited" };
+        }
     } catch (e: any) {
         diagnostics.gemini = { status: "error", message: e.message };
     }

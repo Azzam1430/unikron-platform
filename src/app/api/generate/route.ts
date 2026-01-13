@@ -1,46 +1,76 @@
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(req: Request) {
     try {
         const formData = await req.formData();
         const file = formData.get("image") as File;
         const style = formData.get("style") as string;
-        const prompt = formData.get("prompt") as string;
 
         if (!file) {
             return NextResponse.json({ error: "No image uploaded" }, { status: 400 });
         }
 
-        const API_KEY = process.env.NANO_BANANA_API_KEY;
+        const API_KEY = process.env.NANO_BANANA_API_KEY || process.env.GEMINI_API_KEY;
         if (!API_KEY) {
-            // Demo fallback if no key
-            return NextResponse.json({
-                imageUrl: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=1000",
-                id: "demo-" + Math.random().toString(36).substr(2, 6).toUpperCase(),
-            });
+            return NextResponse.json({ error: "API Key missing" }, { status: 401 });
         }
 
-        const nanoFormData = new FormData();
-        nanoFormData.append("image", file);
-        nanoFormData.append("style", style);
-        if (prompt) nanoFormData.append("prompt", prompt);
+        // Convert file to base64
+        const bytes = await file.arrayBuffer();
+        const base64Data = Buffer.from(bytes).toString("base64");
 
-        const response = await fetch("https://api.nanobanana.ai/v1/image-to-image", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${API_KEY}`,
-            },
-            body: nanoFormData,
+        const genAI = new GoogleGenerativeAI(API_KEY);
+
+        // Use Gemini 2.0 Flash which supports image output
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.0-flash-exp"
         });
 
-        if (!response.ok) {
-            throw new Error(`Nano Banana API error: ${response.statusText}`);
+        const prompt = `Transform this 2D floor plan into a high-end, cinematic 3D architectural interior render. 
+        Style: ${style}. 
+        Focus on realistic lighting, premium materials, and professional composition. 
+        Output only the generated image.`;
+
+        const result = await model.generateContent([
+            {
+                inlineData: {
+                    data: base64Data,
+                    mimeType: file.type
+                }
+            },
+            prompt
+        ]);
+
+        const response = await result.response;
+
+        // In Gemini 2.0, if the model generates an image, it's returned in the candidates
+        // However, standard SDK support for image output in generateContent might vary.
+        // We look for any image part in the response.
+        const candidates = response.candidates;
+        let imageUrl = "";
+
+        if (candidates && candidates[0]?.content?.parts) {
+            const imagePart = candidates[0].content.parts.find(p => p.inlineData?.mimeType?.startsWith("image/"));
+            if (imagePart?.inlineData?.data) {
+                imageUrl = `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
+            }
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        if (!imageUrl) {
+            // If No image was generated (maybe model didn't support it or task failed), 
+            // we use the fallback but log it.
+            console.log("Gemini 2.0 did not return an image part. Content:", response.text());
+            throw new Error("Model failed to generate an image part.");
+        }
+
+        return NextResponse.json({
+            imageUrl,
+            id: "gb-" + Math.random().toString(36).substr(2, 6).toUpperCase(),
+        });
+
     } catch (error: any) {
-        console.error("API Route Error:", error);
+        console.error("API Route Error (Gemini Generation):", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
