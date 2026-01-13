@@ -16,14 +16,17 @@ export async function GET() {
 
         // Try to list models to see what's available
         const resp = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`);
-        if (!resp.ok) throw new Error(`ListModels failed: ${resp.statusText}`);
+        if (!resp.ok) {
+            const errBody = await resp.text();
+            throw new Error(`ListModels failed (${resp.status}): ${errBody.substring(0, 100)}`);
+        }
         const data = await resp.json();
-        const hasFlash = data.models?.some((m: any) => m.name.includes("gemini-1.5-flash"));
+        const models = data.models?.map((m: any) => m.name.replace('models/', '')) || [];
 
-        if (hasFlash) {
-            diagnostics.gemini = { status: "ok", message: "Key valid & models found" };
+        if (models.length > 0) {
+            diagnostics.gemini = { status: "ok", message: `Found ${models.length} models (e.g., ${models[0]})` };
         } else {
-            diagnostics.gemini = { status: "ok", message: "Key valid but models limited" };
+            diagnostics.gemini = { status: "error", message: "Key valid but no models returned" };
         }
     } catch (e: any) {
         diagnostics.gemini = { status: "error", message: e.message };

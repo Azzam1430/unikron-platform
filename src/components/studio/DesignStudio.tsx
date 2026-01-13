@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, X, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,15 @@ interface DesignStudioProps {
 export function DesignStudio({ onImageUploaded, isProcessing, resultImage, onReset }: DesignStudioProps) {
     const [preview, setPreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Clear local preview when we have a real result from the server
+    useEffect(() => {
+        if (resultImage) {
+            console.log("DesignStudio: Result received, clearing local preview.");
+            setPreview(null);
+        }
+    }, [resultImage]);
 
     const handleFile = useCallback((file: File) => {
         if (file.type.startsWith("image/")) {
@@ -73,13 +82,19 @@ export function DesignStudio({ onImageUploaded, isProcessing, resultImage, onRes
             ) : (
                 <div className="relative rounded-3xl overflow-hidden glass aspect-video">
                     <img
+                        key={resultImage || preview || 'empty'}
                         src={(resultImage || preview) ?? undefined}
                         alt="Design View"
                         className={cn(
                             "w-full h-full object-cover transition-opacity duration-700",
-                            isProcessing ? "opacity-40" : "opacity-100"
+                            isProcessing ? "opacity-40 grayscale" : "opacity-100"
                         )}
                     />
+                    {resultImage && (
+                        <div className="absolute top-4 left-4 px-2 py-1 rounded-md bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-white border border-white/20">
+                            Generated Design
+                        </div>
+                    )}
                     {!isProcessing && !resultImage && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                             <Button

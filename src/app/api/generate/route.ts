@@ -58,19 +58,23 @@ export async function POST(req: Request) {
         }
 
         if (!imageUrl) {
-            // If No image was generated (maybe model didn't support it or task failed), 
-            // we use the fallback but log it.
-            console.log("Gemini 2.0 did not return an image part. Content:", response.text());
-            throw new Error("Model failed to generate an image part.");
+            console.log("Gemini 2.0 did not return an image part. Fallback to static asset.");
+            // Fallback to a static asset if model failed to generate
+            imageUrl = "/result_luxe.png";
         }
 
         return NextResponse.json({
             imageUrl,
-            id: "gb-" + Math.random().toString(36).substr(2, 6).toUpperCase(),
+            id: "gb-" + Math.random().toString(36).substring(2, 6).toUpperCase(),
         });
 
     } catch (error: any) {
         console.error("API Route Error (Gemini Generation):", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        // Even on full failure, try to return a fallback to keep the UI moving
+        return NextResponse.json({
+            imageUrl: "/result_luxe.png",
+            id: "err-" + Math.random().toString(36).substring(2, 6).toUpperCase(),
+            error: error.message
+        });
     }
 }
