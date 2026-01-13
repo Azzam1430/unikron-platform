@@ -1,11 +1,15 @@
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-01-27-acacia" as any, // use latest or specific version
-});
+const stripeKey = process.env.STRIPE_SECRET_KEY || "";
+const stripe = stripeKey ? new Stripe(stripeKey, {
+    apiVersion: "2025-01-27-acacia" as any,
+}) : null;
 
 export async function createCheckoutSession(amount: number, styleName: string) {
     try {
+        if (!stripe) {
+            throw new Error("Stripe is not configured. Please add STRIPE_SECRET_KEY to your .env.local");
+        }
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: [

@@ -1,8 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const apiKey = process.env.GEMINI_API_KEY || "";
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function summarizeTrends(logs: string[]) {
+    if (!genAI) {
+        return "Gemini is not configured. Please add GEMINI_API_KEY to your .env.local";
+    }
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-thinking-exp" });
 
     const prompt = `

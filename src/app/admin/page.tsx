@@ -44,7 +44,7 @@ export default function AdminPage() {
                         <Button variant="outline" size="sm" onClick={() => window.location.href = '/'}>
                             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Studio
                         </Button>
-                        <img src="/logo.png" alt="Unikron Logo" className="w-8 h-8 object-contain opacity-50" />
+                        <img src="/logo.png" alt="Unikron Logo" className="w-10 h-10 object-contain" />
                     </div>
                     <div className="font-bold tracking-tighter text-xl text-zinc-600 italic">ADMIN_INTEL // V1.0</div>
                 </header>
